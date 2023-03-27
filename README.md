@@ -1,4 +1,4 @@
-**MYSQL binlog transaction data replication**
+**MYSQL Binary Log Row Event Data Replication**
 
 This Module used to replicate the MYSQL table change data using Binary logs to any replication databases like redshift, postgres.
 
@@ -12,6 +12,10 @@ example: python start.py --server_id 100
 
 Deployment:
     We can deploy it using dockerfile, attached the sample docker file.
+
+TODO:
+    -- Alerts in case of error.
+    -- To write the log pos to permanent location (Currently we have it logs)
 
 Next Release:
     -- Capture the DDL change to the replication server.
