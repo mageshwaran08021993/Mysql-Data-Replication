@@ -18,58 +18,51 @@ class Database:
     metadata = None
     schema = None
     database_type = None
-
-    def __enter__(self):
-        pass
-    
-    def __exit__(self):
-        pass
-    
+    classes = None
     def __init__(self, db_host:str = "", db_port:str = "", db_user:str = "", db_password:str = "", db_name:str = "",    db_schema: str = "", database_type:str = ""):
         self.con = None
-        Database.schema = db_schema
+        # Database.schema = db_schema
         try:
-            if Database.instance is not None:
-                return Database.get_instance()
-            else:
-                try:
-                    if database_type == "redshift":
-                          REDSHIFT_HOST="test-work.432069170121.eu-north-1.redshift-serverless.amazonaws.com"
-                          REDSHIFT_USER="admin"
-                          REDSHIFT_PASS="AWSMagesh1"
-                          REDSHIFT_PORT=5439
-                          REDSHIFT_DB="dev"
-                          params = {
-                                    'user': REDSHIFT_USER,
-                                    'password': REDSHIFT_PASS,
-                                    'host': REDSHIFT_HOST,
-                                    'port': REDSHIFT_PORT,
-                                    'database': REDSHIFT_DB
-                                }
-                          # db = create_engine(f'postgresql://{REDSHIFT_USER}:{REDSHIFT_PASS}@{REDSHIFT_HOST}:{int(REDSHIFT_PORT)}/{REDSHIFT_DB}')
-                          db = create_engine(f'postgresql://admin:AWSMagesh1@test-work.432069170121.eu-north-1.redshift-serverless.amazonaws.com:5439/dev')
-                          # db = create_engine(
-                          #     f'postgresql://postgres:mypassword@localhost:5432/postgres',
-                          #     echo=True)
-                          # db = create_engine('postgresql',connect_args=params)
-                          Database.metadata = MetaData(schema=db_schema)
-                          Database.Base = automap_base(metadata = Database.metadata)
-                          Database.Base.prepare(db, reflect=True)
-                          Database.instance =  db
-                    elif database_type == "mysql":
-                        pass
-                except Exception as e:
-                  import traceback
-                  print(traceback.format_exc())
-    
+            if database_type == "redshift":
+                  params = {
+                            'user': db_user,
+                            'password': db_password,
+                            'host': db_host,
+                            'port': db_port,
+                            'database': db_name
+                        }
+                  db = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
+                  # db = create_engine(f'postgresql://admin:AWSMagesh1@test-work.432069170121.eu-north-1.redshift-serverless.amazonaws.com:5439/dev')
+
+                  # Database.metadata = MetaData()
+                  # Database.Base = automap_base(metadata = Database.metadata)
+                  # Database.Base.prepare(db, reflect=True)
+                  # metadata = MetaData()
+
+                  # Reflect the schema of the database
+                  # metadata.reflect(bind=db)
+                  Base = automap_base()
+
+                  # Reflect the database schema and generate table classes
+                  Base.prepare(db, reflect=True)
+
+                  # Access the reflected metadata
+                  Database.metadata = Base.metadata
+                  Database.classes = Base.metadata.tables
+                  Database.instance = db
+            elif database_type == "mysql":
+                pass
         except Exception as e:
-            raise e
+          import traceback
+          print(traceback.format_exc())
+          raise e
+
         
 
     @staticmethod
     def get_instance():
-        if Database.instance is None:
-            Database(db_schema="public")
+        # if Database.instance is None:
+        #     Database(db_schema="public")
         return Database.instance
 
 
@@ -80,7 +73,7 @@ class Database:
     @staticmethod
     def get_classes():
         if Database.instance is not None:
-            return Database.Base.classes
+            return Database.classes
 
 
 
@@ -89,8 +82,6 @@ class DatabaseUtils:
     session = None
 
     def __init__(self):
-        # Database(db_schema="public")
-        # Database(db_schema="public")
         self.db = Database.get_instance()
         # self.session = self.db.create_session()
  
@@ -126,7 +117,7 @@ class DatabaseUtils:
                 return False, f"{table_val} - Table name is Invalid"
             base_query = self.session.query(table_name)
             for k, v in json_data.items():
-                t = table_name.__table__.columns.get(k.lower(), None)
+                t = table_name.columns.get(k.lower(), None)
                 if t is None:
                     return False, f"{k} Column name in table - {table_val} is Invalid"
                 if v is None or v == 'None':
@@ -134,10 +125,10 @@ class DatabaseUtils:
                 else:
                     base_query = base_query.filter(t == v)
             get_data_query = base_query
-            get_data_val = self.session.execute(get_data_query).scalars().all()
+            get_data_val = self.session.execute(get_data_query).fetchall()
             print("Before Get data")
             for row in get_data_val:
-                print(row.id, row.empadd)
+                print(row)
             return True, get_data_query
         except Exception as e:
             raise e
@@ -154,18 +145,12 @@ class DatabaseUtils:
             classes = Database.get_classes()
             table_name = classes.get(table_val, None)
             if table_name is None:
-                return False, f"{table_val} - Table name is Invalid"
+                raise Exception(f"{table_val} - Table name is Invalid")
             df = pd.DataFrame([json_data])
-            print(df.head())
-            print(df.columns)
             df.to_csv(r"C:\Users\nithi\VS_CODE\MYSQL-REDSHIFT-PIPELINE\src\test.csv")
             df.to_sql(table_val, self.db, index=False, if_exists="append")
-            # df.to_sql(table_name, self.session.bind, index=False, if_exists="append")
-            # insert = table_name(data)
-            # self.session.add(insert)
             self.session.flush()
             self.session.commit()
-            # self.session
         except Exception as e:
             self.rollback_session()
             raise e
@@ -183,7 +168,6 @@ class DatabaseUtils:
             get_data.update(data_json)
             self.session.flush()
             self.session.commit()
-            return True
         except Exception as e:
             self.session.rollback()
             raise e
@@ -213,7 +197,7 @@ class DatabaseUtils:
             if table_name is None:
                 return False, f"{table_val} - Table name is Invalid"
             base_query = self.session.query(table_name)
-            column_names_dt_lt = [(str(column.name).lower(), str(column.type).lower()) for column in classes.tbl_employees.__table__.columns]
+            column_names_dt_lt = [(str(column.name).lower(), str(column.type).lower()) for column in table_name.columns]
             column_names_dt_dict = dict(column_names_dt_lt)
 
             new_data = {}

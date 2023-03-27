@@ -1,0 +1,2 @@
+id,empname,emploc,empsal,empadd,empdesignation,is_manager,is_teamlead,dateofjoin,Lastdate
+2,EMP_3,AE,,"[true, {\""H.No\"": \""1-16/71\"", \""email\"": \""EMP_3@gmail.com\"", \""country\"": \""AE\"", \""zipcode\"": \""643987\""}]",Manager,1,0,2022-11-29 00:00:00,
