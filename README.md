@@ -1,4 +1,4 @@
-**MYSQL binlog transaction data replication to Redshift**
+**MYSQL binlog transaction data replication**
 
 This Module used to replicate the MYSQL table change data using Binary logs to any replication databases like redshift, postgres.
 
