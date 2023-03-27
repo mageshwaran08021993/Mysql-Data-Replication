@@ -2,17 +2,17 @@ from pymysqlreplication import BinLogStreamReader
 from src.mysql_connection import mysql_connection_details
 from src.data_formatter import make_data_compatible
 from traceback import format_exc
-
+from src.valid_params_pymysqlreplication import replicate_input_params_validate
 class MysqlEventsReplica:
 
     stream = None
-    def __init__(self, server_id, log_pos, is_blocking, is_resume_stream):
+    def __init__(self, **kwargs):
+        params_dict = replicate_input_params_validate(**kwargs)
+        if params_dict.get("server_id", None) is None:
+            raise Exception("Server_id param is missing")
         mysql_con = mysql_connection_details()
         MysqlEventsReplica.stream = BinLogStreamReader(connection_settings=mysql_con,
-                                    server_id=server_id,
-                                    blocking= is_blocking,
-                                    resume_stream= is_resume_stream,
-                                    log_pos=log_pos
+                                    **params_dict
                                     )
     @staticmethod
     def delete_event( table__name_val: str, json_data_lt: list[dict], redshift_object):
@@ -21,11 +21,9 @@ class MysqlEventsReplica:
             status, json_data = make_data_compatible(table_name_val=table__name_val,json_data=data,db=redshift_object)
             if not status:
                 return False, json_data
-            try:
-                redshift_object.delete_data(table_val=table__name_val, json_data=json_data)
-                return True, "Success"
-            except Exception as e:
-                return False, format_exc().replace('\n', '; ')
+
+            redshift_object.delete_data(table_val=table__name_val, json_data=json_data)
+
 
     @staticmethod
     def update_event(self, table_name_val: str, json_data_lt: list[dict], redshift_object):
@@ -39,11 +37,8 @@ class MysqlEventsReplica:
                                                     is_update_data="yes")
             if not status:
                 return False, old_json_data
-            # try:
+
             redshift_object.update_data(table_val=table_name_val, old_data_json=old_json_data, data_json=new_json_data)
-                # return True, "Success"
-            # except Exception as e:
-            #     return False, format_exc().replace('\n', '; ')
 
     @staticmethod
     def insert_event(self, table_name_val: str, json_data_lt: list[dict], redshift_object):
@@ -52,15 +47,12 @@ class MysqlEventsReplica:
             status, json_data = make_data_compatible(json_data, db= redshift_object, table_name_val=table_name_val)
             if not status:
                 return False, json_data
-            try:
-                redshift_object.add_data(table_val=table_name_val, json_data=json_data)
-                return True, "Success"
-            except Exception as e:
-                return False, format_exc().replace('\n', '; ')
-            # print("data inserted into table")
+
+            redshift_object.add_data(table_val=table_name_val, json_data=json_data)
+
 
     @staticmethod
-    def get_stream_instance(server_id, log_pos, is_blocking, is_resume_stream):
+    def get_stream_instance(**kwargs):
         if MysqlEventsReplica.stream is None:
-            MysqlEventsReplica(server_id, log_pos, is_blocking, is_resume_stream)
+            MysqlEventsReplica(**kwargs)
         return MysqlEventsReplica.stream

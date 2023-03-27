@@ -4,6 +4,7 @@
 """
 
 from pymysqlreplication.row_event import DeleteRowsEvent, WriteRowsEvent, UpdateRowsEvent
+from pymysqlreplication.event import  QueryEvent
 from src.utils.db_connect import Database, DatabaseUtils
 from src.utils.logger_utils import Logger
 from traceback import format_exc
@@ -50,29 +51,35 @@ def write_last_log_pos(los_pos):
     """
     pass
 
-def start_stream(server_id:int, log_pos:int, is_blocking:bool, is_resume_stream:bool):
+def start_stream(**kwargs):
     """
             Function to read the binary logs and loads the data to redshift database
             :param server_id
             :param log_pos
             :param is_blocking
             :param is_resume_stream
+            :replication params
         """
     try:
         logger = logger_intialization()
         logger.save_log(level="info", component_name="Replica-start_stream", message="Stream started", extended_message="")
-        stream = MysqlEventsReplica.get_stream_instance(server_id, log_pos, is_blocking, is_resume_stream)
+        stream = MysqlEventsReplica.get_stream_instance(**kwargs)
         replica_obj = MysqlEventsReplica
         logger.save_log(level="info", component_name="Replica-start_stream", message="Redshift Initialization started",
                         extended_message="")
-        redshift_obj = redshift_intialization()
+        # redshift_obj = redshift_intialization()
         logger.save_log(level="info", component_name="Replica-start_stream", message="Redshift Initialization Completed",
                         extended_message="")
         logger.save_log(level="info", component_name="Replica-start_stream",
                         message="Waiting for messages",
                         extended_message="")
         for event in stream:
-            # print("Event - ", event)
+            # print(event.query.lower())
+            print("Dump")
+            print(event.dump())
+            continue
+            if isinstance(event, QueryEvent):
+                pass
 
             try:
                 if isinstance(event, DeleteRowsEvent):
@@ -134,4 +141,5 @@ def start_stream(server_id:int, log_pos:int, is_blocking:bool, is_resume_stream:
 
 
 if __name__ == "__main__":
-    start_stream(server_id=100, log_pos=60394476, is_blocking=True, is_resume_stream=True)
+    start_stream(server_id=100, log_pos=847,end_log_pos=None, is_blocking=False, is_resume_stream=False)
+
