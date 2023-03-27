@@ -1,5 +1,5 @@
 import unittest
-import src.db_connect as db_utils
+import src.utils.db_connect as db_utils
 
 db_utils.Database(db_schema="public", database_type="redshift")
 db = db_utils.DatabaseUtils()

@@ -34,6 +34,7 @@ print("Inside Check")
 
 # stream.log_pos
 for binlogevent in stream:
+
     # print(f" Event - {type(binlogevent)} ------event type {binlogevent.event_type} -- table id --- {binlogevent._read_table_id}")
     # print(f"complete data - {binlogevent.dump()}")
     # print(f"log postion - {binlogevent.log_pos}")
