@@ -6,16 +6,16 @@ from traceback import format_exc
 class MysqlEventsReplica:
 
     stream = None
-    def __init__(self):
+    def __init__(self, server_id, log_pos, is_blocking, is_resume_stream):
         mysql_con = mysql_connection_details()
         MysqlEventsReplica.stream = BinLogStreamReader(connection_settings=mysql_con,
-                                    server_id=100,
-                                    blocking= True,
-                                    resume_stream=True,
-                                    log_pos=2769
-                                                       )
-
-    def delete_event(self, table__name_val: str, json_data_lt: list[dict], redshift_object):
+                                    server_id=server_id,
+                                    blocking= is_blocking,
+                                    resume_stream= is_resume_stream,
+                                    log_pos=log_pos
+                                    )
+    @staticmethod
+    def delete_event( table__name_val: str, json_data_lt: list[dict], redshift_object):
         for row in json_data_lt:
             data = row.get("values")
             status, json_data = make_data_compatible(table_name_val=table__name_val,json_data=data,db=redshift_object)
@@ -27,6 +27,7 @@ class MysqlEventsReplica:
             except Exception as e:
                 return False, format_exc().replace('\n', '; ')
 
+    @staticmethod
     def update_event(self, table_name_val: str, json_data_lt: list[dict], redshift_object):
         for row in json_data_lt:
             old_json_data = row["before_values"]
@@ -44,6 +45,7 @@ class MysqlEventsReplica:
             # except Exception as e:
             #     return False, format_exc().replace('\n', '; ')
 
+    @staticmethod
     def insert_event(self, table_name_val: str, json_data_lt: list[dict], redshift_object):
         for row in json_data_lt:
             json_data = row.get("values")
@@ -58,7 +60,7 @@ class MysqlEventsReplica:
             # print("data inserted into table")
 
     @staticmethod
-    def get_stream_instance():
+    def get_stream_instance(server_id, log_pos, is_blocking, is_resume_stream):
         if MysqlEventsReplica.stream is None:
-            MysqlEventsReplica()
+            MysqlEventsReplica(server_id, log_pos, is_blocking, is_resume_stream)
         return MysqlEventsReplica.stream

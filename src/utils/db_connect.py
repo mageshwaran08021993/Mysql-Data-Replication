@@ -24,13 +24,6 @@ class Database:
         # Database.schema = db_schema
         try:
             if database_type == "redshift":
-                  params = {
-                            'user': db_user,
-                            'password': db_password,
-                            'host': db_host,
-                            'port': db_port,
-                            'database': db_name
-                        }
                   db = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
                   # db = create_engine(f'postgresql://admin:AWSMagesh1@test-work.432069170121.eu-north-1.redshift-serverless.amazonaws.com:5439/dev')
 

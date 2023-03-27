@@ -1,11 +1,11 @@
 
+"""
+    Module to read the tranaction binary data like Insert/delete/update data and updates the same to Redshift database
+"""
 
 from pymysqlreplication.row_event import DeleteRowsEvent, WriteRowsEvent, UpdateRowsEvent
 from src.utils.db_connect import Database, DatabaseUtils
 from src.utils.logger_utils import Logger
-import json
-import datetime
-import os
 from traceback import format_exc
 from src.config import Config
 from src.mysql_event import MysqlEventsReplica
@@ -14,6 +14,11 @@ db = None
 get_logger = None
 
 def redshift_intialization():
+    """
+        Function to create the Redshiift connection
+        :param None
+        :return connection_object
+    """
     global db
     if db is None:
         print("Inside db connect")
@@ -29,20 +34,46 @@ def redshift_intialization():
     return db
 
 def logger_intialization():
-    # get_logger = globals()["get_logger"]
+    """
+        Function to intialize the logger
+        :param None
+        :return logger object
+    """
     global get_logger
     if get_logger is None:
         get_logger = Logger.get_logger_instance(component_name="", log_to_file=Config.get_log_to_file(), log_to_console=Config.get_log_to_console(), log_name=Config.get_log_file_name(), file_path=Config.get_log_file_path())
     return get_logger
 
-def start_stream():
+def write_last_log_pos(los_pos):
+    """
+        Function to capture the last proccessed log pos id, inorder to resume the streaming from the left point
+    """
+    pass
+
+def start_stream(server_id:int, log_pos:int, is_blocking:bool, is_resume_stream:bool):
+    """
+            Function to read the binary logs and loads the data to redshift database
+            :param server_id
+            :param log_pos
+            :param is_blocking
+            :param is_resume_stream
+        """
     try:
         logger = logger_intialization()
         logger.save_log(level="info", component_name="Replica-start_stream", message="Stream started", extended_message="")
-        stream = MysqlEventsReplica.get_stream_instance()
-        replica_obj = MysqlEventsReplica()
+        stream = MysqlEventsReplica.get_stream_instance(server_id, log_pos, is_blocking, is_resume_stream)
+        replica_obj = MysqlEventsReplica
+        logger.save_log(level="info", component_name="Replica-start_stream", message="Redshift Initialization started",
+                        extended_message="")
         redshift_obj = redshift_intialization()
+        logger.save_log(level="info", component_name="Replica-start_stream", message="Redshift Initialization Completed",
+                        extended_message="")
+        logger.save_log(level="info", component_name="Replica-start_stream",
+                        message="Waiting for messages",
+                        extended_message="")
         for event in stream:
+            # print("Event - ", event)
+
             try:
                 if isinstance(event, DeleteRowsEvent):
                     logger.save_log(level="debug", component_name="Replica-start_stream", message="Delete event started", extended_message="")
@@ -103,4 +134,4 @@ def start_stream():
 
 
 if __name__ == "__main__":
-    start_stream()
+    start_stream(server_id=100, log_pos=60394476, is_blocking=True, is_resume_stream=True)
