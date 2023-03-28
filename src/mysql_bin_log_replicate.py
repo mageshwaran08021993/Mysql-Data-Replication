@@ -22,7 +22,7 @@ def redshift_intialization():
     """
     global db
     if db is None:
-        print("Inside db connect")
+        # print("Inside db connect")
         Database(db_schema=Config.get_target_db_schema(),
                  database_type=Config.get_target_database_type(),
                  db_host=Config.get_target_db_host(),
@@ -65,22 +65,16 @@ def start_stream(**kwargs):
         logger.save_log(level="info", component_name="Replica-start_stream", message="Stream started", extended_message="")
         stream = MysqlEventsReplica.get_stream_instance(**kwargs)
         replica_obj = MysqlEventsReplica
+        # replica_obj = func
         logger.save_log(level="info", component_name="Replica-start_stream", message="Redshift Initialization started",
                         extended_message="")
-        # redshift_obj = redshift_intialization()
+        redshift_obj = redshift_intialization()
         logger.save_log(level="info", component_name="Replica-start_stream", message="Redshift Initialization Completed",
                         extended_message="")
         logger.save_log(level="info", component_name="Replica-start_stream",
                         message="Waiting for messages",
                         extended_message="")
         for event in stream:
-            # print(event.query.lower())
-            print("Dump")
-            print(event.dump())
-            continue
-            if isinstance(event, QueryEvent):
-                pass
-
             try:
                 if isinstance(event, DeleteRowsEvent):
                     logger.save_log(level="debug", component_name="Replica-start_stream", message="Delete event started", extended_message="")
@@ -92,7 +86,10 @@ def start_stream(**kwargs):
                                     extended_message=f"Delete Event for table - {table_name} and its log position - {log_pos}, its timestamp - {timestamp}")
                     logger.save_log(level="debug", component_name="Replica-start_stream", message="Delete event",
                                     extended_message=f"Delete Event for table - {table_name} and its log position - {log_pos}, its timestamp - {timestamp} and data - {lt_json_data}")
-                    replica_obj.delete_event(table__name_val=table_name, json_data_lt=lt_json_data, redshift_object=redshift_obj)
+                    try:
+                        replica_obj.delete_event(table__name_val=table_name, json_data_lt=lt_json_data, redshift_object=redshift_obj)
+                    except Exception as e:
+                        raise e
                 # continue
                 if isinstance(event, UpdateRowsEvent):
                     logger.save_log(level="debug", component_name="Replica-start_stream", message="Update event started", extended_message="")
@@ -121,25 +118,23 @@ def start_stream(**kwargs):
                                     extended_message=f"INSERT Event for table - {table_name} and its log position - {log_pos}, its timestamp - {timestamp}")
                     logger.save_log(level="debug", component_name="Replica-start_stream", message="Insert event",
                                     extended_message=f"INSERT Event for table - {table_name} and its log position - {log_pos}, its timestamp - {timestamp} and data - {lt_json_data}")
-                    status, msg = replica_obj.insert_event(table_name_val=table_name, json_data_lt=lt_json_data,
+                    try:
+                        replica_obj.insert_event(table_name_val=table_name, json_data_lt=lt_json_data,
                                              redshift_object=redshift_obj)
-                    if status is not True:
-                        logger.save_log(level="error", component_name="Replica-start_stream", message="Insert event",
-                                        extended_message=f"{msg}")
+                    except Exception as e:
+                        raise e
                         # TODO: Alerts
             except Exception as e:
-                # TODO - In the event of any exception, need to include Alerts
                 tb_message = format_exc().replace('\n', '; ')
                 logger.save_log(level="error", component_name="Replica-start_stream", message="Exception",
                                 extended_message=f"{tb_message}")
         stream.close()
     except Exception as e:
-        # TODO - In the event of any exception, need to include Alerts
         tb_message = format_exc().replace('\n', '; ')
         logger.save_log(level="error", component_name="Replica-start_stream", message="Exception",
                         extended_message=f"{tb_message}")
 
 
 if __name__ == "__main__":
-    start_stream(server_id=100, log_pos=847,end_log_pos=None, is_blocking=False, is_resume_stream=False)
+    start_stream(server_id=100, log_pos=None, end_log_pos=None, blocking=True, resume_stream=False)
 

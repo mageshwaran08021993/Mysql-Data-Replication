@@ -25,15 +25,7 @@ class Database:
         try:
             if database_type == "redshift":
                   db = create_engine(f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}')
-                  # db = create_engine(f'postgresql://admin:AWSMagesh1@test-work.432069170121.eu-north-1.redshift-serverless.amazonaws.com:5439/dev')
 
-                  # Database.metadata = MetaData()
-                  # Database.Base = automap_base(metadata = Database.metadata)
-                  # Database.Base.prepare(db, reflect=True)
-                  # metadata = MetaData()
-
-                  # Reflect the schema of the database
-                  # metadata.reflect(bind=db)
                   Base = automap_base()
 
                   # Reflect the database schema and generate table classes
@@ -54,7 +46,7 @@ class Database:
 
     @staticmethod
     def get_instance():
-        # if Database.instance is None:
+        # +if Database.instance is None:
         #     Database(db_schema="public")
         return Database.instance
 
@@ -119,9 +111,9 @@ class DatabaseUtils:
                     base_query = base_query.filter(t == v)
             get_data_query = base_query
             get_data_val = self.session.execute(get_data_query).fetchall()
-            print("Before Get data")
+            # print("Before Get data")
             for row in get_data_val:
-                print(row)
+                print("Data we got ", row)
             return True, get_data_query
         except Exception as e:
             raise e
